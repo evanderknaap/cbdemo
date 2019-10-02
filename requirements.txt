@@ -1,0 +1,7 @@
+Faker
+Pandas
+Numpy
+google-cloud-pubsub
+Finspark
+pyspark
+jupyter
