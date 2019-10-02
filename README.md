@@ -100,8 +100,7 @@ Run the example
 spark-submit --jars ${SPARK_PUBSUB_JAR} --driver-class-path ${SPARK_PUBSUB_JAR} --py-files \
 ${SPARK_PUBSUB_PYTHON_EGG} sensor_streaming.py
  ```
-
- # TODO find the pub, of the empty pubsub message 
+TODO: fix pubsub error
 
 ## Demo 3 -  Data Fusion
 
@@ -125,7 +124,7 @@ source env/bin/activate
 python publish.py 
 ```
 
-# TODO Clean up 
+## TODO Clean up 
 
 ```bash
 bq rm streaming_dataset
