@@ -4,7 +4,6 @@ Demos of streaming data into BigQuery using pyspark jobs.
 - The first demo is running locally on a textSocketStream
 - The second demo runs on dataproc
 
-
 ## Demo 1
 
 ### Setup 
