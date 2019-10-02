@@ -1,8 +1,9 @@
 # README 
 
-Demos of streaming data into BigQuery using pyspark jobs. 
+Demos of streaming data into BigQuery using pyspark jobs and Data Fusion. 
 - The first demo is running locally on a textSocketStream
 - The second demo runs on dataproc
+- The third demo runs on DataFusion
 
 ## Demo 1
 
@@ -44,7 +45,7 @@ and the results written to BigQuery. You can play with
 
 ## Demo 2 
 
-In the second demo, we are going to read dummy sensory data from pubsub.
+In the second demo, we are going to read dummy sensor data from pubsub.
 We will create this dummy data with a [faker](https://github.com/joke2k/faker)
 python scripts, which we will run locally. 
 
@@ -102,40 +103,29 @@ ${SPARK_PUBSUB_PYTHON_EGG} sensor_streaming.py
 
  # TODO find the pub, of the empty pubsub message 
 
-### Run the the script to generate fake message 
+## Demo 3 -  Data Fusion
+
+- Create a new Data Fusion instance
+- Create a bucket bucket in the US, with a checkpointing folder
+
+#### Deploy the pipeline
+- Navigate to the pipeline studio and hit the green, *+* button
+- Select *import pipeline*
+- Upload *stream_pipeline-cdap-data-streams.json* from the project folder
+- Select *fix all*
+- Check that the right topic and subscriptions are set in the pubsub plugin 
+- In the pipeline config settings, set the checkpoint folder
+- In the BigQuery plugins, make sure to set the temporary golder to the checkpoints folder
+- Deploy the pipeline 
+
+#### Run the the script to generate fake message 
 
 ``` bash
 source env/bin/activate
 python publish.py 
 ```
 
-### DEMO notes
-Build a batch pipeline (SAP CSV on GCS)
-    Explore [ ] hamburger menu: (SDK) 
-                Portable (SDK, management)
-                pipelines, studio, wrangler & metadata 
-                Explore local data export
-    
-            SAP export
-                Deploy
-                Clean (missing values, filtering)
-                JavaScript 
-                Join
-                JDBC connector 
-            BigQuery
-                Count the join
-
-Deploying a pipeline
-    Show the summary 
-    Show the pipelines
-
-Real-time
-    Time series features
-    Error cleaning
-    Aggregate windows  [30sec]
-    Metadata 
-
-# Clean up 
+# TODO Clean up 
 
 ```bash
 bq rm streaming_dataset
