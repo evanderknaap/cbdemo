@@ -130,32 +130,70 @@ In this demo, we create a Kafka cluster on DataProc and generate fake sensor dat
 On a second dataproc cluster we deploy a pyspark application that parses the data and streams it into BigQuery.
 
 #### Setup 
+Set environment variables
 ```
 PROJECT=<your-project>
 BUCKET=<your-bucket-name>
 CLUSTER=<your-cluster-name>
 ```
 
-Create a DataProc Cluster with 3 master nodes, running Kafka. An initialization script is generated
+Create a DataProc Cluster with 3 master nodes, running Kafka. Note the initialization script that is passed
+to install Kafka on the nodes.
 ```bash
 gcloud beta dataproc clusters create $CLUSTER \
-    --enable-component-gateway --region europe-west1 --subnet default --zone "" --num-masters 3 \ --master-machine-type n1-standard-2 --master-boot-disk-size 500 --num-workers 2 \
-    --worker-machine-type n1-standard-2 --worker-boot-disk-size 500 --image-version 1.4-debian9 \ --optional-components ANACONDA,JUPYTER --scopes 'https://www.googleapis.com/auth/cloud-platform' \
-    --project rtb-workshop --initialization-actions 'gs://dataproc-initialization-actions/kafka/kafka.sh'
+    --enable-component-gateway --region europe-west1 --subnet default --zone "" --num-masters 3 \
+    --master-machine-type n1-standard-2 --master-boot-disk-size 500 --num-workers 2 \
+    --worker-machine-type n1-standard-2 --worker-boot-disk-size 500 --image-version 1.4-debian9 \
+    --optional-components ANACONDA,JUPYTER --scopes 'https://www.googleapis.com/auth/cloud-platform' \
+    --project $PROJECT --initialization-actions 'gs://dataproc-initialization-actions/kafka/kafka.sh'
 ```
 
-SSH into a master node, and create a topic. 
+From your local terminal, list the names of the worker nodes and note the name. We need it later.
+``` bash
+gcloud dataproc clusters describe $CLUSTER --region europe-west1 | grep w-
+```
+
+Navigate **dataproc > cluster > vm-instance** in the google cloud console. Click the SSH button next to any master node to create a topic. 
 ```bash
 kafka-topics.sh --zookeeper localhost:2181 --create --replication-factor 1 --partitions 1 --topic test 
 ```
-
-Generate some random messages
+From within the same window, create an environment variable for one of the worker node names.
 ```bash
-for i in {0..100000}; do echo "device_1,${i}"; sleep 0.2; done |    /usr/lib/kafka/bin/kafka-console-producer.sh --broker-list mi-dev-kafka-w-0:9092 --topic test
+WORKER=<worker-name>
+```
+Generate random data and add it to the topuc. We create a comma seperate string of a device_id, event_time timestamp, and two random numbers that mimic a sensor reading. 
+
+```bash
+  for i in {1..10000}; 
+          do for i in {1..3}; 
+                  do timestamp=$(date +%s);
+                  echo "device_${i},${timestamp},$(($RANDOM%40+1)),$(($RANDOM%10+1))";
+          done;
+          sleep 1s; 
+   done | /usr/lib/kafka/bin/kafka-console-producer.sh --broker-list $WORKER:9092 --topic test
+```
+Navigate **dataproc > cluster > vm-instance** in the console. Create a second SSH tunnel on any of the nodes.
+Store the name of a worker.
+```bash
+WORKER=<your-worker-name>
+```
+Read the message 
+```bash
+/usr/lib/kafka/bin/kafka-console-consumer.sh \
+    --bootstrap-server $WORKER:9092 \
+    --topic test --from-beginning
 ```
 
+Next we create a second dataproc cluster to run our SparkJob
+``` Bash
+gcloud dataproc jobs submit pyspark --cluster=$CLUSTER\
+    --region europe-west1\
+    --properties spark.jars.packages=org.apache.spark:spark-streaming-kafka-0-8_2.11:2.0.1\
+    sensor_streaming.py     
+```
 ## TODO Clean up 
 
 ```bash
 bq rm streaming_dataset
+dataproc clusters delete $CLUSTER --region europe-west1
 ```
