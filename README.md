@@ -182,7 +182,7 @@ Check if the messages exist. If all goes well, you should see messages flowing i
     --bootstrap-server $WORKER:9092 \
     --topic test --from-beginning
 ```
-#### Kafka stream into Spark on DataProc
+#### Kafka stream into Spark running on DataProc
 Next, lets's see if we can get messages incoming into our pyspark application. We are going to deploy a pyspark application, that prints 10 records, every 5 seconds. 
 ``` Bash
 gcloud dataproc jobs submit pyspark --cluster=$CLUSTER\
@@ -190,7 +190,6 @@ gcloud dataproc jobs submit pyspark --cluster=$CLUSTER\
     --properties spark.jars.packages=org.apache.spark:spark-streaming-kafka-0-8_2.11:2.0.1\
     sensor_streaming.py     
 ```
-
 Grab the Job_id of the running spark job, and copy it. 
 ```bash
 gcloud dataproc jobs list --region=europe-west1
@@ -202,6 +201,8 @@ gcloud dataproc jobs kill <JOB_ID> --region=europe-west1
 #### Streaming to BigQuery
 Next, let's deploy a second cluster to run our pyspark job, called **spark**. Since we are using the Python SDK wrapper around the BigQuery **table.Insertall** API, we will add the bigquery library and intall it using Pip.
 One can also use conda to install packages. However, the channels used in the startup script do not include the google cloud SDK, so we'll use Pip instead.
+
+TODO create new table
 
 ```bash
 gcloud dataproc clusters create spark\
@@ -219,9 +220,31 @@ gcloud dataproc jobs submit pyspark --cluster=spark\
 ```
 If all goes well we should have data streaming in.
 
-## TODO Clean up 
+#### Streaming windows to BigQuery 
+Finally, we'll create a slightly more exotic stream to BigQuery. The stream will be parsed, and send to a second table, called *TableB*. We will also compute the average of *reading_1* in the stream over a sliding window, and
+pprint the result to output.
 
+First we create a new table in BigQuery, called *tableB*, with the following schema:
+- device: string
+- timestamp: timestamp
+- reading_1: int
+- reading_2: int
+
+Next, it is time to run our job.
+
+```bash
+gcloud dataproc jobs submit pyspark --cluster=spark\
+    --region europe-west1\
+    --properties spark.jars.packages=org.apache.spark:spark-streaming-kafka-0-8_2.11:2.0.1\
+    windowed_sensor_stream.py  
+```
+
+If all goes well, you should see the data stream into BigQuery. Your terminal window should look like this:
+
+
+## Clean up 
 ```bash
 bq rm streaming_dataset
 dataproc clusters delete $CLUSTER --region europe-west1
+dataproc clusters delete spark --region europe-west1
 ```
