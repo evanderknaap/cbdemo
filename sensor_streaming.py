@@ -11,8 +11,5 @@ directKafkaStream = KafkaUtils.createDirectStream(
         {"metadata.broker.list": "demo-w-0:9092"})
 lines = directKafkaStream.map(lambda x: x[1]).pprint()
 
-# Write to bucket for testing 
-
-
 ssc.start()
 ssc.awaitTermination()

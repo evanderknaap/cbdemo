@@ -123,8 +123,7 @@ TODO: fix pubsub error
 source env/bin/activate
 python publish.py 
 ```
-
-## Demo 3 - Kafka to BigQuery 
+## Demo 4 - Kafka to BigQuery 
 
 In this demo, we create a Kafka cluster on DataProc and generate fake sensor data. 
 On a second dataproc cluster we deploy a pyspark application that parses the data and streams it into BigQuery.
@@ -177,20 +176,49 @@ Store the name of a worker.
 ```bash
 WORKER=<your-worker-name>
 ```
-Read the message 
+Check if the messages exist. If all goes well, you should see messages flowing in.
 ```bash
 /usr/lib/kafka/bin/kafka-console-consumer.sh \
     --bootstrap-server $WORKER:9092 \
     --topic test --from-beginning
 ```
-
-Next we create a second dataproc cluster to run our SparkJob
+#### Kafka stream into Spark on DataProc
+Next, lets's see if we can get messages incoming into our pyspark application. We are going to deploy a pyspark application, that prints 10 records, every 5 seconds. 
 ``` Bash
 gcloud dataproc jobs submit pyspark --cluster=$CLUSTER\
     --region europe-west1\
     --properties spark.jars.packages=org.apache.spark:spark-streaming-kafka-0-8_2.11:2.0.1\
     sensor_streaming.py     
 ```
+
+Grab the Job_id of the running spark job, and copy it. 
+```bash
+gcloud dataproc jobs list --region=europe-west1
+```
+Paste the Job_ID in the follow command to kill it
+```bash
+gcloud dataproc jobs kill <JOB_ID> --region=europe-west1
+```
+#### Streaming to BigQuery
+Next, let's deploy a second cluster to run our pyspark job, called **spark**. Since we are using the Python SDK wrapper around the BigQuery **table.Insertall** API, we will add the bigquery library and intall it using Pip.
+One can also use conda to install packages. However, the channels used in the startup script do not include the google cloud SDK, so we'll use Pip instead.
+
+```bash
+gcloud dataproc clusters create spark\
+    --optional-components ANACONDA\
+    --metadata 'PIP_PACKAGES=google-cloud-bigquery'\
+    --region europe-west1\
+    --initialization-actions gs://dataproc-initialization-actions/python/pip-install.sh
+```
+Next, submit our job to our fresh cluster.
+``` Bash
+gcloud dataproc jobs submit pyspark --cluster=spark\
+    --region europe-west1\
+    --properties spark.jars.packages=org.apache.spark:spark-streaming-kafka-0-8_2.11:2.0.1\
+    sensor_stream_to_bigquery.py     
+```
+If all goes well we should have data streaming in.
+
 ## TODO Clean up 
 
 ```bash
