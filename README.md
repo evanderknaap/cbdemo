@@ -124,6 +124,36 @@ source env/bin/activate
 python publish.py 
 ```
 
+## Demo 3 - Kafka to BigQuery 
+
+In this demo, we create a Kafka cluster on DataProc and generate fake sensor data. 
+On a second dataproc cluster we deploy a pyspark application that parses the data and streams it into BigQuery.
+
+#### Setup 
+```
+PROJECT=<your-project>
+BUCKET=<your-bucket-name>
+CLUSTER=<your-cluster-name>
+```
+
+Create a DataProc Cluster with 3 master nodes, running Kafka. An initialization script is generated
+```bash
+gcloud beta dataproc clusters create $CLUSTER \
+    --enable-component-gateway --region europe-west1 --subnet default --zone "" --num-masters 3 \ --master-machine-type n1-standard-2 --master-boot-disk-size 500 --num-workers 2 \
+    --worker-machine-type n1-standard-2 --worker-boot-disk-size 500 --image-version 1.4-debian9 \ --optional-components ANACONDA,JUPYTER --scopes 'https://www.googleapis.com/auth/cloud-platform' \
+    --project rtb-workshop --initialization-actions 'gs://dataproc-initialization-actions/kafka/kafka.sh'
+```
+
+SSH into a master node, and create a topic. 
+```bash
+kafka-topics.sh --zookeeper localhost:2181 --create --replication-factor 1 --partitions 1 --topic test 
+```
+
+Generate some random messages
+```bash
+for i in {0..100000}; do echo "device_1,${i}"; sleep 0.2; done |    /usr/lib/kafka/bin/kafka-console-producer.sh --broker-list mi-dev-kafka-w-0:9092 --topic test
+```
+
 ## TODO Clean up 
 
 ```bash
